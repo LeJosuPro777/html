@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolución de Sistema de Ecuaciones</title>
+    <style>
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Asegurar que no haya bordes redondeados en ningún elemento */
+            border-radius: 0 !important; 
+        }
+
+        body {
+            background-color: #CECDD0;
+            color: #222;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        h2 {
+            text-align: center;
+            color: #222;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+        }
+
+        
+        .app-container {
+            background-color: #B9B8BC;
+            border: 4px solid #7D7C80;
+            padding: 30px;
+            width: 100%;
+            max-width: 850px;
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.1);
+        }
+
+        .panel {
+            background-color: #A5A4A8;
+            border: 3px solid #7D7C80;
+            padding: 25px;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        input[type="number"] {
+            background-color: #CECDD0;
+            border: 2px solid #7D7C80;
+            padding: 8px;
+            font-size: 1rem;
+            text-align: center;
+            width: 70px;
+            margin: 0 5px;
+            color: #000;
+        }
+
+        input[type="number"]:focus {
+            outline: 2px solid #222;
+            background-color: #fff;
+        }
+
+        button {
+            background-color: #919094;
+            color: #fff;
+            border: 3px solid #7D7C80;
+            padding: 10px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        button:hover {
+            background-color: #7D7C80;
+            color: #fff;
+        }
+
+        .equation-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .variable-label {
+            font-weight: bold;
+            font-style: italic;
+            margin-right: 10px;
+            min-width: 30px;
+        }
+
+        .equals-sign {
+            font-weight: bold;
+            margin: 0 15px;
+        }
+
+        .result-term {
+            background-color: #CECDD0;
+            border: 2px solid #222;
+        }
+
+        /* Resultados */
+        #result-content {
+            font-size: 1.2rem;
+            background-color: #CECDD0;
+            border: 2px solid #7D7C80;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .res-var {
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 1.4rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h2>Resolución de sistema de ecuaciones</h2>
+
+        <div id="step-init" class="panel">
+            <div class="form-group">
+                <label for="eq-count">Ecuaciones (m): </label>
+                <input type="number" id="eq-count" min="1" max="100" value="2">
+            </div>
+            <div class="form-group">
+                <label for="var-count">Incógnitas (n): </label>
+                <input type="number" id="var-count" min="1" max="100" value="2">
+            </div>
+            <button onclick="generateMatrix()">Listar / Generar</button>
+        </div>
+
+        <div id="step-matrix" class="panel hidden">
+            <div id="matrix-container"></div>
+            <button onclick="calculateSolution()">Calcular</button>
+        </div>
+
+        <!-- FASE 3: Resultados -->
+        <div id="step-result" class="panel hidden">
+            <div id="result-content"></div>
+            <button onclick="resetApp()">Volver</button>
+        </div>
+    </div>
+
+    <script>
+        let m_equations = 0;
+        let n_variables = 0;
+
+  
+        function generateMatrix() {
+            m_equations = parseInt(document.getElementById('eq-count').value);
+            n_variables = parseInt(document.getElementById('var-count').value);
+
+            if (m_equations < 1 || n_variables < 1) {
+                alert("Las dimensiones deben ser mayores a 0");
+                return;
+            }
+
+            const container = document.getElementById('matrix-container');
+            container.innerHTML = ''; // Limpiar matriz anterior
+
+            const vars = ['x', 'y', 'z', 'w', 'v', 'u', 't', 's', 'r', 'q'];
+
+            for (let i = 0; i < m_equations; i++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'equation-row';
+
+                for (let j = 0; j < n_variables; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.id = `cell-${i}-${j}`;
+                    input.value = '0';
+                    input.step = 'any';
+
+                    const label = document.createElement('span');
+                    label.className = 'variable-label';
+                    label.innerText =  `x${j + 1}` + (j < n_variables - 1 ? " +" : "");
+
+                    rowDiv.appendChild(input);
+                    rowDiv.appendChild(label);
+                }
+
+                const equals = document.createElement('span');
+                equals.className = 'equals-sign';
+                equals.innerText = '=';
+                rowDiv.appendChild(equals);
+
+                // Término independiente (Vector B)
+                const resultInput = document.createElement('input');
+                resultInput.type = 'number';
+                resultInput.id = `cell-${i}-b`;
+                resultInput.className = 'result-term';
+                resultInput.value = '0';
+                resultInput.step = 'any';
+                rowDiv.appendChild(resultInput);
+
+                container.appendChild(rowDiv);
+            }
+
+            document.getElementById('step-init').classList.add('hidden');
+            document.getElementById('step-matrix').classList.remove('hidden');
+        }
+
+        function resetApp() {
+            document.getElementById('step-result').classList.add('hidden');
+            document.getElementById('step-matrix').classList.add('hidden');
+            document.getElementById('step-init').classList.remove('hidden');
+        }
+
+    
+        function calculateSolution() {
+            let matrix = [];
+            for (let i = 0; i < m_equations; i++) {
+                let row = [];
+                for (let j = 0; j < n_variables; j++) {
+                    row.push(parseFloat(document.getElementById(`cell-${i}-${j}`).value));
+                }
+                row.push(parseFloat(document.getElementById(`cell-${i}-b`).value));
+                matrix.push(row);
+            }
+
+            let h = 0; 
+            let k = 0; 
+
+            while (h < m_equations && k < n_variables) {
+                
+                let i_max = h;
+                let v_max = Math.abs(matrix[i_max][k]);
+                for (let i = h + 1; i < m_equations; i++) {
+                    if (Math.abs(matrix[i][k]) > v_max) {
+                        v_max = Math.abs(matrix[i][k]);
+                        i_max = i;
+                    }
+                }
+
+                
+                if (Math.abs(matrix[i_max][k]) < 1e-10) {
+                    k++;
+                } else {
+                    
+                    let temp = matrix[h];
+                    matrix[h] = matrix[i_max];
+                    matrix[i_max] = temp;
+
+                    
+                    let pivot = matrix[h][k];
+                    for (let j = k; j <= n_variables; j++) {
+                        matrix[h][j] /= pivot;
+                    }
+
+                    
+                    for (let i = 0; i < m_equations; i++) {
+                        if (i !== h) {
+                            let factor = matrix[i][k];
+                            for (let j = k; j <= n_variables; j++) {
+                                matrix[i][j] -= factor * matrix[h][j];
+                            }
+                        }
+                    }
+                    h++;
+                    k++;
+                }
+            }
+
+            
+            displayResults(matrix);
+        }
+
+        function displayResults(matrix) {
+            const container = document.getElementById('result-content');
+            container.innerHTML = '';
+            const vars = ['x', 'y', 'z', 'w', 'v', 'u', 't', 's', 'r', 'q'];
+
+            
+            let isInconsistent = false;
+            for (let i = 0; i < m_equations; i++) {
+                let allZeros = true;
+                for (let j = 0; j < n_variables; j++) {
+                    if (Math.abs(matrix[i][j]) > 1e-10) allZeros = false;
+                }
+                if (allZeros && Math.abs(matrix[i][n_variables]) > 1e-10) {
+                    isInconsistent = true;
+                    break;
+                }
+            }
+
+            if (isInconsistent) {
+                container.innerHTML = '<strong>SISTEMA INCONSISTENTE</strong><br><br>No tiene solución.';
+            } else {
+            
+                let rankA = 0;
+                for (let i = 0; i < m_equations; i++) {
+                    let allZeros = true;
+                    for (let j = 0; j < n_variables; j++) {
+                        if (Math.abs(matrix[i][j]) > 1e-10) allZeros = false;
+                    }
+                    if (!allZeros) rankA++;
+                }
+
+                if (rankA < n_variables) {
+                    container.innerHTML = '<strong>INFINITAS SOLUCIONES</strong><br><br>Sistema Indeterminado..';
+                } else {
+            
+                    container.innerHTML = '<strong>SOLUCIÓN ÚNICA:</strong><hr style="border:1px solid #7D7C80; margin:15px 0;">';
+                    for (let i = 0; i < n_variables; i++) {
+                        let varName = `x${i + 1}`;
+       
+                        let val = matrix[i][n_variables];
+                        
+       
+                        if (Math.abs(val) < 1e-10) val = 0; 
+                        val = Math.round(val * 10000) / 10000; 
+
+                        const resDiv = document.createElement('div');
+                        resDiv.className = 'res-var';
+                        resDiv.innerHTML = `${varName} = ${val}`;
+                        container.appendChild(resDiv);
+                    }
+                }
+            }
+
+            // Cambiar vista
+            document.getElementById('step-matrix').classList.add('hidden');
+            document.getElementById('step-result').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
